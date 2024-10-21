@@ -1,0 +1,10 @@
+https://doc.rust-lang.org/stable/book/
+
+"rustup update" - update rust
+"rustup --version" - version manager
+"rustc --version" - compiler
+"cargo --version" - package manager
+"cargo init" - initialize new rust project in current directory
+"cargo run" - compile and run
+"cargo build" - compile
+"cargo build --release" - compile optimized release version
