@@ -10,10 +10,12 @@ use rand::Rng;
 // once a module is part of your crate, you can refer to code in that module from anywhere else in that same crate.
 pub mod utils;
 pub mod player;
+pub mod traits;
 
 // "use" keyword creates shortcuts to reduce repetition of long paths
-pub use crate::utils::{calc_length, get_slice};
+pub use crate::utils::*;
 pub use crate::player::*;
+pub use crate::traits::*;
 
 const RANGE: RangeInclusive<i32> = 0..=1;
 
@@ -77,13 +79,13 @@ fn main() {
 	// all of its content is freed when it goes out of scope.
 	let mut actions = vec![
 		PlayerAction::Talk(String::from("hello")),
-		PlayerAction::Move(Some(Point{ x: 5, y: 5 })),
+		PlayerAction::Move(Some(Point{ x: 5.0, y: 5.0 })),
 	];
 
 	// maybe move again?
-	let mut distance: Option<Point> = None;
+	let mut distance: Option<Point<f32>> = None;
 	if rand::thread_rng().gen_range(0..=1) == 0 {
-		distance = Some(Point{ x: 10, y: -5 })
+		distance = Some(Point{ x: 10.0, y: -5.0 })
 	}
 	actions.push(PlayerAction::Move(distance));
 
@@ -92,6 +94,8 @@ fn main() {
 		player.do_action(action);
 	}
 	println!("actions: {:?}", actions);
+
+	move_to_start(&mut player);
 	dbg!(&player);
 
 	let mut scores: HashMap<String, i32> = HashMap::new();
@@ -101,4 +105,9 @@ fn main() {
 	for (k, v) in scores {
 		println!("{k}: {v}");
 	}
+
+	// Lifetimes allow us to give the compiler enough information about borrowed values so that it can ensure
+	// references will be valid in more situations than it could without our help.
+
+	// lifetimes ensure that references are valid as long as we need them to be
 }

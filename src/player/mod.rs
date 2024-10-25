@@ -1,14 +1,8 @@
-#[derive(Debug, Clone)]
-pub struct Point { pub x: i32, pub y: i32 }
-impl Point {
-	pub fn zero() -> Self {
-		Self{ x: 0, y: 0 }
-	}
-}
+use crate::{traits::Movable, utils::*};
 
 #[derive(Debug)]
 pub enum PlayerAction {
-	Move(Option<Point>),
+	Move(Option<Point<f32>>),
 	Talk(String)
 }
 
@@ -30,7 +24,7 @@ pub struct Player {
 	pub lvl: u32,
 	pub balance: Balance,
 	pub sex: Sex,
-	pub pos: Point,
+	pub pos: Point<f32>,
 }
 
 impl Player {
@@ -45,19 +39,14 @@ impl Player {
 
 	pub fn do_action(&mut self, action: &PlayerAction) {
 		if let PlayerAction::Move(p) = action {
-			self.do_move(p.clone().unwrap_or(Point::zero()));
+			let by_pos = p.clone().unwrap_or(Point::zero());
+			self.move_by(by_pos.x, by_pos.y); // calling a method implemented in trait Movable
 			return;
 		}
 		if let PlayerAction::Talk(text) = action {
 			self.do_talk(text.to_string());
 			return;
 		}
-	}
-
-	pub fn do_move(&mut self, p: Point) {
-		println!("Player move: {:?}", p);
-		self.pos.x += p.x;
-		self.pos.y += p.y;
 	}
 
 	pub fn do_talk(&mut self, text: String) {
