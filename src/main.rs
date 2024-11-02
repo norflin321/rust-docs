@@ -1,3 +1,4 @@
+use std::thread;
 use std::{cmp::Ordering, io, ops::RangeInclusive};
 use std::collections::HashMap;
 use rand::Rng;
@@ -57,7 +58,7 @@ fn main() {
 	let s1 = String::from("hello");
 
 	// When assigning/passing/returning:
-	// 1. values that are stored on the stack do copy.
+	// 1. values that are stored on the stack do copy (if they implement "Copy" trait).
 	// 2. values that are stored on the heap do move (or we can call clone() method).
 	let mut s2 = s1;
 
@@ -106,8 +107,67 @@ fn main() {
 		println!("{k}: {v}");
 	}
 
-	// Lifetimes allow us to give the compiler enough information about borrowed values so that it can ensure
-	// references will be valid in more situations than it could without our help.
+	// lifetimes allow us to give the compiler enough information about borrowed values so that it can ensure
+	// references will be valid in more situations than it could without our help. the main aim is to prevent dangling references.
+	let str1 = String::from("Anton");
+	let result;
+	{
+		let str2 = String::from("Kurtin");
+		result = longest(str1.as_str(), str2.as_str());
+		println!("{}", result)
+	}
 
-	// lifetimes ensure that references are valid as long as we need them to be
+	// error! because we annotated the lifetimes of the function parameters and return values with the same lifetime ('a)
+	// println!("{}", result)
+
+	/// this lifetime annotation means an instance of ImportantExcerpt can’t outlive the reference it holds in its part field
+	struct _ImportantExcerpt<'a> {
+	  part: &'a str,
+	}
+
+	// three lifetime elision rules (the compiler uses them when there are no explicit lifetime annotations):
+	//
+	// 1. The first rule is that the compiler assigns a lifetime parameter to each parameter that’s a reference.
+	// In other words, a function with one parameter gets one lifetime parameter: fn foo<'a>(x: &'a i32);
+	// a function with two parameters gets two separate lifetime parameters: fn foo<'a, 'b>(x: &'a i32, y: &'b i32); and so on.
+	//
+	// 2. The second rule is that, if there is exactly one input lifetime parameter,
+	// that lifetime is assigned to all output lifetime parameters: fn foo<'a>(x: &'a i32) -> &'a i32
+	//
+	// 3. The third rule is that, if there are multiple input lifetime parameters, but one of them is "&self" or "&mut self" because this is a method,
+	// the lifetime of "self" is assigned to all output lifetime parameters. This third rule makes methods much nicer to read and write because fewer symbols are necessary.
+
+	let mut num = 1;
+
+	// closures can capture values from their environment in three ways (which directly map to the three ways a function can take a parameter):
+	// 1. borrowing immutably
+	// 2. borrowing mutably
+	// 3. and taking ownership
+	// The closure will decide which of these to use based on what the body of the function does with the captured values.
+	let mut add_num = |x: &mut i32| {
+		num += 1; // causes the closure to captures a mutable reference of "num" and automaticly implement "FnMut"
+		*x += num;
+	};
+	let mut a = 0;
+	// println!("num: {}", num); // error: cannot borrow "num" as immutable because it is also borrowed as mutable
+	add_num(&mut a);
+
+	println!("num: {}", num);
+	println!("a: {}", a);
+
+	// closures will automatically implement one, two, or all three of these Fn traits, in an additive fashion, depending on how the closure’s body handles the values:
+	//
+	// 1. "FnOnce" applies to closures that can be called once. All closures implement at least this trait, because all closures can be called.
+	// A closure that moves captured values out of its body will only implement "FnOnce" and none of the other "Fn" traits, because it can only be called once.
+	// For example a closure can implement "FnOnce" when it capture a value and then transferring ownership of that value to another function that it calls,
+	// trying to call the closure a second time wouldn’t work because value would no longer be in the environment that is was captured from.
+	//
+	// 2. "FnMut" applies to closures that don’t move captured values out of their body, but that might mutate the captured values. These closures can be called more than once.
+	//
+	// 3. "Fn" applies to closures that don’t move captured values out of their body and that don’t mutate captured values, as well as closures that capture nothing from their environment. These closures can be called more than once without mutating their environment, which is important in cases such as calling a closure multiple times concurrently.
+
+	let list = vec![1, 2, 3];
+	// we need to specify that we want to move ownership of "list" to the closure (using "move" keyword), because if the main thread maintained ownership of "list"
+	// but ended before the new thread did and dropped "list", the immutable reference in the thread would be invalid.
+	thread::spawn(move || println!("from thread: {list:?}")).join().unwrap();
 }
